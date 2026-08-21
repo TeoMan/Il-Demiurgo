@@ -1860,7 +1860,7 @@ function PlayerSheet({ playerName, shk, localRuleset }) {
   });
   const key = shk.pc(playerName);
   useEffect(() => {
-    dbGet(key).then(d => { if (d) setForm(f => ({ ...blankForm, ...d })); setLoaded(true); });
+    shGet(key).then(d => { if (d) setForm(f => ({ ...blankForm, ...d })); setLoaded(true); });
     if (!localRuleset) {
       shGet(shk.campaign).then(c => {
         if (c?.ruleset) { const found = RULESETS.find(r => r.id === c.ruleset); if (found) setRulesetLabel(found.label); }
