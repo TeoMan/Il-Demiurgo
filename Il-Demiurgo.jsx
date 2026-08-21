@@ -473,7 +473,7 @@ function RoleSelector({ onSelectDM, onSelectPlayer }) {
         <h2 className="text-2xl font-bold text-blue-400 text-center mb-1">Crea il tuo Personaggio</h2>
         <p className="text-zinc-400 text-sm text-center mb-6">
           Puoi creare il PG ora e unirti alla stanza del Master in seguito.<br/>
-          <span className="text-zinc-600">Quando il Master ti darà il codice, torna qui e usa "Entra nella Stanza".</span>
+          <span className="text-zinc-600">Quando il Master ti darà il codice, torna alla pagina precedente e usa "Entra nella Stanza".</span>
         </p>
         <div className="bg-zinc-800 border border-zinc-700 rounded-2xl p-5 mb-5 space-y-5">
           <div>
@@ -500,6 +500,11 @@ function RoleSelector({ onSelectDM, onSelectPlayer }) {
           className="w-full py-4 bg-blue-700 hover:bg-blue-600 disabled:opacity-40 text-white font-bold text-lg rounded-xl transition-colors">
           ✏️ Inizia a creare →
         </button>
+        <p className="text-center mt-4 text-zinc-500 text-sm">
+          <button onClick={() => onSelectPlayer("SOLO", "---", soloRuleset)} className="text-blue-400 hover:text-blue-300 underline">
+            Apri una scheda vuota per caricare il tuo personaggio →
+          </button>
+        </p>
       </div>
     </div>
   );
@@ -2054,7 +2059,7 @@ SOLO JSON valido:
       <div className="flex-1 overflow-y-auto p-4">
         <div className="max-w-2xl mx-auto space-y-4">
           {sheetTab === "base" && <>
-            <PCard><h3 className="text-blue-400 font-semibold text-sm mb-3">📋 Info Base</h3><div className={`grid gap-3 mb-3 ${isMobile ? "grid-cols-1" : "grid-cols-4"}`}><div className={isMobile ? "" : "col-span-2"}><label className="text-xs text-zinc-400 mb-1 block">Nome PG</label><PInp value={form.name} onChange={v => upd("name", v)} placeholder="Kael" /></div><div><label className="text-xs text-zinc-400 mb-1 block">Razza</label><PInp value={form.race} onChange={v => upd("race", v)} placeholder="Elfo" /></div><div><label className="text-xs text-zinc-400 mb-1 block">Livello</label><PInp value={form.level} onChange={v => upd("level", v)} placeholder="1" type="number" /></div></div><div><label className="text-xs text-zinc-400 mb-1 block">Classe</label><PInp value={form.cls} onChange={v => upd("cls", v)} placeholder="Ranger" /></div></PCard>
+            <PCard><h3 className="text-blue-400 font-semibold text-sm mb-3">📋 Info Base</h3><div className={`grid gap-3 mb-3 ${isMobile ? "grid-cols-1" : "grid-cols-4"}`}><div className={isMobile ? "" : "col-span-2"}><label className="text-xs text-zinc-400 mb-1 block">Nome PG</label><PInp value={form.name} onChange={v => upd("name", v)} placeholder="Kael" /></div><div><label className="text-xs text-zinc-400 mb-1 flex items-center gap-1">Razza<span title="Razze disponibili: Umano, Dragonide, Elfo, Gnomo, Halfling, Mezzelfo, Mezzorco, Nano, Tiefling" className="w-4 h-4 rounded-full bg-zinc-600 text-zinc-300 text-[10px] font-bold flex items-center justify-center cursor-help shrink-0">?</span></label><PInp value={form.race} onChange={v => upd("race", v)} placeholder="Elfo" /></div><div><label className="text-xs text-zinc-400 mb-1 block">Livello</label><PInp value={form.level} onChange={v => upd("level", v)} placeholder="1" type="number" /></div></div><div><label className="text-xs text-zinc-400 mb-1 flex items-center gap-1">Classe<span title="Classi disponibili: Barbaro, Guerriero, Paladino, Ranger, Ladro, Monaco, Mago, Stregone, Warlock, Bardo, Chierico, Druido" className="w-4 h-4 rounded-full bg-zinc-600 text-zinc-300 text-[10px] font-bold flex items-center justify-center cursor-help shrink-0">?</span></label><PInp value={form.cls} onChange={v => upd("cls", v)} placeholder="Ranger" /></div></PCard>
             <PCard><h3 className="text-blue-400 font-semibold text-sm mb-3">💪 Caratteristiche</h3><div className={`grid gap-2 ${isMobile ? "grid-cols-3" : "grid-cols-6"}`}>{STATS_KEYS.map((k, i) => <div key={k} className="bg-zinc-700/50 rounded-xl p-2 text-center border border-zinc-600"><p className="text-xs text-zinc-500 font-bold mb-1">{STATS_LABELS[i]}</p><p className="text-lg font-bold text-blue-300">{mod(form[k])}</p><input type="number" value={form[k]} onChange={e => upd(k, parseInt(e.target.value) || 10)} className="w-full text-center bg-transparent text-xs text-zinc-400 focus:outline-none" min="1" max="30" /></div>)}</div><p className="text-xs text-zinc-600 mt-2">💡 Premi <strong className="text-purple-400">✨ Compila con AI</strong> per tirare automaticamente le stat con il metodo 4d6 e compilare la scheda.</p></PCard>
             <PCard><div className="flex items-center justify-between mb-2"><h3 className="text-blue-400 font-semibold text-sm">📝 Note / Background</h3><Btn variant="pSecondary" size="sm" onClick={() => setNotesModal(true)}>↗ Espandi</Btn></div><PTxta value={form.notes} onChange={v => upd("notes", v)} rows={4} placeholder="Background, inventario, obiettivi, appunti..." /></PCard>
             <PCard><h3 className="text-blue-400 font-semibold text-sm mb-1">🧪 Note Homebrew / AI</h3><p className="text-zinc-500 text-xs mb-2">Descrivi razza o classe personalizzata.</p><PTxta value={form.homebrewNotes} onChange={v => upd("homebrewNotes", v)} rows={2} placeholder="Es: razza Draconico con +2 FOR e immunità al fuoco..." /></PCard>
