@@ -498,13 +498,8 @@ function RoleSelector({ onSelectDM, onSelectPlayer }) {
           onClick={() => soloName.trim() && onSelectPlayer("SOLO", soloName.trim(), soloRuleset)}
           disabled={!soloName.trim()}
           className="w-full py-4 bg-blue-700 hover:bg-blue-600 disabled:opacity-40 text-white font-bold text-lg rounded-xl transition-colors">
-          ✏️ Inizia a creare →
+          ✏️ Inizia a creare o entra per ricaricare il tuo personaggio salvato →
         </button>
-        <p className="text-center mt-4 text-zinc-500 text-sm">
-          <button onClick={() => onSelectPlayer("SOLO", "---", soloRuleset)} className="text-blue-400 hover:text-blue-300 underline">
-            Apri una scheda vuota per caricare il tuo personaggio →
-          </button>
-        </p>
       </div>
     </div>
   );
