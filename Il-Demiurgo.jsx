@@ -1811,6 +1811,8 @@ function PlayerSheet({ playerName, shk, localRuleset }) {
   const [notesModal, setNotesModal] = useState(false);
   const [weaponModal, setWeaponModal] = useState(null);
   const [spellModal, setSpellModal] = useState(null);
+  const [weaponOptions, setWeaponOptions] = useState(null);
+  const [spellOptions, setSpellOptions] = useState(null);
   const [abilityModal, setAbilityModal] = useState(null);
   const [abilityModalEditing, setAbilityModalEditing] = useState(false);
 
@@ -1923,6 +1925,58 @@ function PlayerSheet({ playerName, shk, localRuleset }) {
     s = s.replace(/"((?:[^"\\]|\\.)*)"/g, (_, inner) => '"' + inner.replace(/\n/g, "\\n").replace(/\r/g, "").replace(/\t/g, " ") + '"');
     return JSON.parse(s);
   };
+  const generateOneWeapon = async () => {
+    if (!form.race || !form.cls) { alert("Inserisci prima razza e classe!"); return; }
+    setAiLoading(true);
+    const subject = `${form.race} ${form.cls} livello ${form.level || 1}`;
+    const existing = (form.weapons || []).map(w => w.name).filter(Boolean);
+    const existingCtx = existing.length ? `\nArmi già presenti nella scheda (NON ripeterle, proponi alternative diverse): ${existing.join(", ")}.` : "";
+    const homebrewCtx = form.homebrewNotes?.trim() ? `\nNOTE HOMEBREW/PERSONALIZZATE: ${form.homebrewNotes}` : "";
+    const prompt = `Proponi 5 armi diverse tra loro, adatte a un ${subject}, con cui la classe ha competenza secondo le regole RAW di ${rulesetLabel}.${homebrewCtx}${existingCtx}
+I nomi delle armi DEVONO essere in italiano (es. "Spada lunga", "Pugnale", "Arco lungo", "Ascia da guerra", "Bastone"). Il campo "type" deve essere in italiano (es. "Tagliente", "Perforante", "Contundente").
+SOLO JSON valido, un array di 5 oggetti:
+{"options":[{"name":"","damage":"","bonus":"","type":""}]}`;
+    try {
+      const resp = await aiCall([{ role: "user", content: prompt }], `Sei un esperto di ${rulesetLabel}. Solo JSON puro.`, 900);
+      const d = safeJSON(resp);
+      const opts = (d.options || []).slice(0, 5);
+      if (!opts.length) throw new Error("no options");
+      setWeaponOptions(opts);
+    } catch { alert("Errore nella generazione AI. Riprova."); }
+    setAiLoading(false);
+  };
+  const confirmWeaponOption = (w) => {
+    const newForm = { ...form, weapons: [...(form.weapons || []), { id: uid(), ...w }] };
+    setForm(newForm); shSet(key, newForm);
+    setWeaponOptions(null);
+    setSaved(true); setTimeout(() => setSaved(false), 2500);
+  };
+  const generateOneSpell = async () => {
+    if (!form.race || !form.cls) { alert("Inserisci prima razza e classe!"); return; }
+    setAiLoading(true);
+    const subject = `${form.race} ${form.cls} livello ${form.level || 1}`;
+    const existing = (form.spells || []).map(s => s.name).filter(Boolean);
+    const existingCtx = existing.length ? `\nIncantesimi già presenti nella scheda (NON ripeterli, proponi alternative diverse): ${existing.join(", ")}.` : "";
+    const homebrewCtx = form.homebrewNotes?.trim() ? `\nNOTE HOMEBREW/PERSONALIZZATE: ${form.homebrewNotes}` : "";
+    const prompt = `Proponi 5 incantesimi diversi tra loro, adatti a un ${subject}, disponibili secondo la lista incantesimi e la progressione RAW di ${rulesetLabel} al lv${form.level || 1}.${homebrewCtx}${existingCtx}
+Nomi e descrizioni DEVONO essere in italiano.
+SOLO JSON valido, un array di 5 oggetti:
+{"options":[{"name":"","level":0,"school":"","desc":""}]}`;
+    try {
+      const resp = await aiCall([{ role: "user", content: prompt }], `Sei un esperto di ${rulesetLabel}. Solo JSON puro.`, 1400);
+      const d = safeJSON(resp);
+      const opts = (d.options || []).slice(0, 5);
+      if (!opts.length) throw new Error("no options");
+      setSpellOptions(opts);
+    } catch { alert("Errore nella generazione AI. Riprova."); }
+    setAiLoading(false);
+  };
+  const confirmSpellOption = (s) => {
+    const newForm = { ...form, spells: [...(form.spells || []), { id: uid(), ...s }] };
+    setForm(newForm); shSet(key, newForm);
+    setSpellOptions(null);
+    setSaved(true); setTimeout(() => setSaved(false), 2500);
+  };
   const generateWithAI = async () => {
     if (!form.race || !form.cls) { alert("Inserisci prima razza e classe!"); return; }
     setAiLoading(true);
@@ -1989,6 +2043,37 @@ SOLO JSON valido:
           <div className="bg-zinc-900 border border-blue-700/50 rounded-2xl max-w-lg w-full flex flex-col" style={{maxHeight:"85vh"}} onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between p-5 border-b border-zinc-700 shrink-0"><h3 className="text-lg font-bold text-blue-300">📝 Note / Background</h3><button onClick={() => setNotesModal(false)} className="text-zinc-500 hover:text-zinc-200 text-xl">✕</button></div>
             <div className="p-5 space-y-3 overflow-y-auto flex-1"><PTxta value={form.notes} onChange={v => upd("notes", v)} rows={14} placeholder="Background, inventario, obiettivi, appunti..." /><div className="flex justify-end"><Btn variant="player" size="sm" onClick={() => setNotesModal(false)}>✓ Chiudi</Btn></div></div>
+          </div>
+        </div>
+      )}
+      {weaponOptions && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={() => setWeaponOptions(null)}>
+          <div className="bg-zinc-900 border border-purple-700/50 rounded-2xl max-w-md w-full flex flex-col" style={{maxHeight:"85vh"}} onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-5 border-b border-zinc-700 shrink-0"><h3 className="text-lg font-bold text-purple-300">✨ Scegli un'arma</h3><button onClick={() => setWeaponOptions(null)} className="text-zinc-500 hover:text-zinc-200 text-xl">✕</button></div>
+            <div className="p-5 space-y-2 overflow-y-auto flex-1">
+              {weaponOptions.map((w, i) => (
+                <button key={i} onClick={() => confirmWeaponOption(w)} className="w-full text-left bg-zinc-800 hover:bg-zinc-700 border border-zinc-600 hover:border-purple-600/50 rounded-xl px-4 py-3 transition-all">
+                  <div className="flex items-center gap-3 mb-1"><span className="font-semibold text-zinc-200 flex-1">{w.name || "Senza nome"}</span>{w.damage && <Badge color="red">{w.damage}</Badge>}{w.bonus && <Badge color="gold">{w.bonus}</Badge>}</div>
+                  {w.type && <p className="text-zinc-500 text-xs">{w.type}</p>}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+      {spellOptions && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={() => setSpellOptions(null)}>
+          <div className="bg-zinc-900 border border-purple-700/50 rounded-2xl max-w-md w-full flex flex-col" style={{maxHeight:"85vh"}} onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-5 border-b border-zinc-700 shrink-0"><h3 className="text-lg font-bold text-purple-300">✨ Scegli un incantesimo</h3><button onClick={() => setSpellOptions(null)} className="text-zinc-500 hover:text-zinc-200 text-xl">✕</button></div>
+            <div className="p-5 space-y-2 overflow-y-auto flex-1">
+              {spellOptions.map((s, i) => (
+                <button key={i} onClick={() => confirmSpellOption(s)} className="w-full text-left bg-zinc-800 hover:bg-zinc-700 border border-zinc-600 hover:border-purple-600/50 rounded-xl px-4 py-3 transition-all">
+                  <div className="flex items-center justify-between mb-1"><span className="font-semibold text-purple-300">{s.name || "Senza nome"}</span><Badge color="purple">{s.level === 0 ? "Trucchetto" : "Lv." + s.level}</Badge></div>
+                  {s.school && <p className="text-zinc-500 text-xs mb-0.5">{s.school}</p>}
+                  {s.desc && <p className="text-zinc-400 text-xs line-clamp-2">{s.desc}</p>}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )}
@@ -2072,7 +2157,7 @@ SOLO JSON valido:
               <details className="group"><summary className="text-xs text-zinc-500 cursor-pointer hover:text-zinc-300 transition-colors select-none list-none flex items-center gap-1"><span className="group-open:rotate-90 transition-transform inline-block">▶</span>⚙️ Configura slot manualmente</summary><div className="mt-2 pt-2 border-t border-zinc-700"><p className="text-xs text-zinc-600 mb-2">Max slot per livello (1–9):</p><div className="grid grid-cols-9 gap-1">{Array.from({length:9},(_,i) => <div key={i} className="text-center"><p className="text-xs text-zinc-600 mb-0.5">{i+1}</p><input type="number" min="0" max="9" value={(form.slotMax||BLANK_SLOTS)[i]||0} onChange={e=>{const nm=[...(form.slotMax||[...BLANK_SLOTS])];nm[i]=Math.max(0,Math.min(9,parseInt(e.target.value)||0));upd("slotMax",nm);}} className="w-full text-center bg-zinc-700 border border-zinc-600 rounded text-xs text-zinc-200 py-0.5 focus:outline-none focus:border-blue-600" /></div>)}</div></div></details>
             </PCard>
             <PCard><h3 className="text-blue-400 font-semibold text-sm mb-3">🩹 Condizioni</h3><div className="flex flex-wrap gap-1.5">{CONDITIONS.map(cd => <button key={cd} onClick={() => toggleCond(cd)} className={"text-xs px-2.5 py-1 rounded-full border transition-colors "+(form.conditions?.includes(cd)?"bg-red-700/40 border-red-600/50 text-red-300":"border-zinc-600 text-zinc-500 hover:border-zinc-400 hover:text-zinc-300")}>{cd}</button>)}</div></PCard>
-            <PCard><div className="flex items-center justify-between mb-3"><h3 className="text-blue-400 font-semibold text-sm">⚔️ Armi & Attacchi</h3><div className="flex gap-2">{form.cls && <button onClick={generateWithAI} disabled={aiLoading} className="text-xs text-purple-400 hover:text-purple-300 disabled:opacity-40">✨ Genera</button>}<Btn variant="pSecondary" size="sm" onClick={addWeapon}>+ Aggiungi</Btn></div></div>{(form.weapons||[]).length===0&&!aiLoading&&<div className="text-center py-6 text-zinc-500 text-sm"><div className="text-3xl mb-2">⚔️</div><p>Nessuna arma.</p></div>}<div className="space-y-2">{(form.weapons||[]).map(w=><button key={w.id} onClick={()=>setWeaponModal({...w})} className="w-full text-left bg-zinc-700/50 hover:bg-zinc-700 border border-zinc-600 hover:border-red-600/50 rounded-xl px-4 py-2.5 transition-all"><div className="flex items-center gap-3"><span className="font-semibold text-zinc-200 flex-1">{w.name||"Senza nome"}</span>{w.damage&&<Badge color="red">{w.damage}</Badge>}{w.bonus&&<Badge color="gold">{w.bonus}</Badge>}{w.type&&<span className="text-zinc-500 text-xs">{w.type}</span>}<span className="text-zinc-600 text-xs">→</span></div></button>)}</div></PCard>
+            <PCard><div className="flex items-center justify-between mb-3"><h3 className="text-blue-400 font-semibold text-sm">⚔️ Armi & Attacchi</h3><div className="flex gap-2">{form.cls ? <button onClick={generateOneWeapon} disabled={aiLoading} className={"px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors border " + (aiLoading ? "opacity-50 cursor-not-allowed border-purple-700/40 bg-purple-900/20 text-purple-300" : "border-purple-600/60 bg-purple-900/40 hover:bg-purple-800/60 text-purple-200")}>{aiLoading ? "✨ Generando..." : "✨ Scegli arma"}</button> : <Btn variant="pSecondary" size="sm" onClick={addWeapon}>+ Aggiungi</Btn>}</div></div>{(form.weapons||[]).length===0&&!aiLoading&&<div className="text-center py-6 text-zinc-500 text-sm"><div className="text-3xl mb-2">⚔️</div><p>Nessuna arma.</p></div>}<div className="space-y-2">{(form.weapons||[]).map(w=><button key={w.id} onClick={()=>setWeaponModal({...w})} className="w-full text-left bg-zinc-700/50 hover:bg-zinc-700 border border-zinc-600 hover:border-red-600/50 rounded-xl px-4 py-2.5 transition-all"><div className="flex items-center gap-3"><span className="font-semibold text-zinc-200 flex-1">{w.name||"Senza nome"}</span>{w.damage&&<Badge color="red">{w.damage}</Badge>}{w.bonus&&<Badge color="gold">{w.bonus}</Badge>}{w.type&&<span className="text-zinc-500 text-xs">{w.type}</span>}<span className="text-zinc-600 text-xs">→</span></div></button>)}</div></PCard>
           </>}
           {sheetTab === "skills" && (() => {
             const lvl = parseInt(form.level) || 1;
@@ -2099,7 +2184,7 @@ SOLO JSON valido:
           )}
           {sheetTab === "spells" && (
             <PCard>
-              <div className="flex items-center justify-between mb-3"><h3 className="text-blue-400 font-semibold text-sm">✨ Incantesimi</h3><div className="flex gap-2">{form.cls && <button onClick={generateWithAI} disabled={aiLoading} className="text-xs text-purple-400 hover:text-purple-300 disabled:opacity-40">✨ Genera con AI</button>}<Btn variant="pSecondary" size="sm" onClick={addSpell}>+ Aggiungi</Btn></div></div>
+              <div className="flex items-center justify-between mb-3"><h3 className="text-blue-400 font-semibold text-sm">✨ Incantesimi</h3><div className="flex gap-2">{form.cls ? <button onClick={generateOneSpell} disabled={aiLoading} className={"px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors border " + (aiLoading ? "opacity-50 cursor-not-allowed border-purple-700/40 bg-purple-900/20 text-purple-300" : "border-purple-600/60 bg-purple-900/40 hover:bg-purple-800/60 text-purple-200")}>{aiLoading ? "✨ Generando..." : "✨ Scegli incantesimo"}</button> : <Btn variant="pSecondary" size="sm" onClick={addSpell}>+ Aggiungi</Btn>}</div></div>
               {aiLoading && <div className="text-center py-4 text-purple-300 text-sm animate-pulse">✨ Generando...</div>}
               {(form.spells||[]).length===0&&!aiLoading&&<div className="text-center py-8 text-zinc-500 text-sm"><div className="text-3xl mb-2">✨</div><p>Nessun incantesimo.</p></div>}
               {spellsByLevel.map(({l,items})=><div key={l} className="mb-4"><p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">{l===0?"Trucchetti":"Livello "+l}</p><div className="grid grid-cols-2 gap-2">{items.map(s=><button key={s.id} onClick={()=>setSpellModal({...s})} className="text-left bg-zinc-700/50 hover:bg-zinc-700 border border-zinc-600 hover:border-purple-600/50 rounded-xl p-3 transition-all"><div className="flex items-center justify-between mb-1"><span className="font-semibold text-purple-300 text-sm truncate">{s.name||"Senza nome"}</span><span className="text-zinc-600 text-xs shrink-0 ml-1">→</span></div>{s.school&&<p className="text-zinc-500 text-xs">{s.school}</p>}{s.desc&&<p className="text-zinc-400 text-xs mt-0.5 line-clamp-1">{s.desc}</p>}</button>)}</div></div>)}
